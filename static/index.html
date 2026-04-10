@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRospect — find your next open-source contribution</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --bg-card: #161b22;
+      --border: #30363d;
+      --border-hover: #6e7681;
+      --accent: #00ff88;
+      --text: #ffffff;
+      --muted: #8b949e;
+      --very-muted: #6e7681;
+      --red: #ff5555;
+      --orange: #f0a500;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'Inter', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* ── Progress bar ── */
+    #progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 2px;
+      width: 0%;
+      background: var(--accent);
+      z-index: 1000;
+      opacity: 0;
+      transition: width 2.8s ease-out;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 48px 0 36px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .logo-mark {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .logo-word {
+      font-family: var(--font-sans);
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .tagline {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* ── Input area ── */
+    .input-area {
+      margin-bottom: 36px;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .prompt-prefix {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      color: var(--accent);
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    #repo-input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      min-width: 0;
+    }
+
+    #repo-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.15);
+    }
+
+    #repo-input::placeholder {
+      color: var(--very-muted);
+    }
+
+    #scan-btn {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+
+    #scan-btn:hover:not(:disabled) { opacity: 0.85; }
+    #scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .input-error {
+      margin-top: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--red);
+      min-height: 18px;
+    }
+
+    .quick-picks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .quick-pick {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .quick-pick:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Loading ── */
+    #loading {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px 28px;
+      line-height: 2;
+    }
+
+    .load-line {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .load-prefix {
+      color: var(--accent);
+    }
+
+    /* ── Error card ── */
+    #error-card {
+      background: var(--bg-card);
+      border-left: 4px solid var(--red);
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--red);
+    }
+
+    #error-card strong { font-weight: 600; }
+
+    /* ── Empty state ── */
+    #empty {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .stat-block {
+      flex: 1;
+      padding: 16px 20px;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .stat-block:last-child { border-right: none; }
+
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    /* ── Filter row ── */
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .filter-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .filter-pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .filter-pill.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .filter-pill:hover:not(.active) {
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    /* ── Repo notice ── */
+    .repo-notice {
+      font-size: 12px;
+      font-style: italic;
+      color: #6e7681;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    /* ── Issue cards ── */
+    #cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .issue-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      display: flex;
+      gap: 16px;
+      transition: border-color 0.15s;
+    }
+
+    .issue-card:hover { border-color: var(--border-hover); }
+
+    .card-rank {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--very-muted);
+      width: 32px;
+      text-align: right;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+
+    .card-rank.top3 { color: var(--muted); }
+
+    .card-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .card-title {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+      display: block;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color 0.15s;
+    }
+
+    .card-title:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .card-reason {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 20px;
+      padding: 2px 8px;
+    }
+
+    .badge-easy   { background: #00ff88; color: #0d1117; }
+    .badge-medium { background: #f0a500; color: #0d1117; }
+    .badge-hard   { background: #ff5555; color: #0d1117; }
+
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: #21262d;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+
+    .card-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--very-muted);
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="progress-bar"></div>
+
+  <div class="container">
+    <header>
+      <div class="logo">
+        <span class="logo-mark">&gt;_</span>
+        <span class="logo-word">PRospect</span>
+      </div>
+      <p class="tagline">find your next open-source contribution</p>
+    </header>
+
+    <div class="input-area">
+      <div class="input-row">
+        <span class="prompt-prefix">$</span>
+        <input
+          id="repo-input"
+          type="text"
+          placeholder="owner/repo, HTTPS or SSH URL"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button id="scan-btn">Scan &#8594;</button>
+      </div>
+      <div id="input-error" class="input-error"></div>
+      <div class="quick-picks">
+        <button class="quick-pick" data-repo="vercel/next.js">vercel/next.js</button>
+        <button class="quick-pick" data-repo="django/django">django/django</button>
+        <button class="quick-pick" data-repo="astral-sh/uv">astral-sh/uv</button>
+        <button class="quick-pick" data-repo="facebook/react">facebook/react</button>
+        <button class="quick-pick" data-repo="microsoft/vscode">microsoft/vscode</button>
+      </div>
+    </div>
+
+    <div id="loading" class="hidden"></div>
+
+    <div id="error-card" class="hidden"></div>
+
+    <div id="empty" class="hidden">No available issues found for this repo.</div>
+
+    <div id="results" class="hidden">
+      <div class="stats-bar">
+        <div class="stat-block">
+          <div class="stat-label">Open issues</div>
+          <div class="stat-value" id="stat-issues">—</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Available</div>
+          <div class="stat-value" id="stat-available">—</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Open PRs</div>
+          <div class="stat-value" id="stat-prs">—</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Ranked</div>
+          <div class="stat-value" id="stat-ranked">—</div>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <span class="filter-label">Filter:</span>
+        <button class="filter-pill active" data-filter="all">All</button>
+        <button class="filter-pill" data-filter="easy"   id="filter-easy">Easy</button>
+        <button class="filter-pill" data-filter="medium" id="filter-medium">Medium</button>
+        <button class="filter-pill" data-filter="hard"   id="filter-hard">Hard</button>
+      </div>
+
+      <p class="repo-notice">
+        Issues with open PRs or active assignees have been filtered out.
+        Results reflect Claude's assessment — always check the issue thread before starting work.
+      </p>
+
+      <div id="cards-container"></div>
+    </div>
+  </div>
+
+  <script>
+    // ── Utilities ────────────────────────────────────────────────────────
+
+    function parseRepoInput(input) {
+      const trimmed = input.trim();
+      if (!trimmed) return null;
+      const stripped = trimmed.replace(/\.git$/, '');
+      const match = stripped.match(/github\.com[:/]([a-zA-Z0-9_.\-]+\/[a-zA-Z0-9_.\-]+)/);
+      if (match && match[1]) {
+        const parts = match[1].split('/');
+        if (parts[0] && parts[1]) return `${parts[0]}/${parts[1]}`;
+      }
+      if (/^[a-zA-Z0-9_.\-]+\/[a-zA-Z0-9_.\-]+$/.test(trimmed)) return trimmed;
+      return null;
+    }
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function delay(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    // ── State ─────────────────────────────────────────────────────────────
+
+    let allIssues = [];
+    let currentFilter = 'all';
+
+    // ── Progress bar ──────────────────────────────────────────────────────
+
+    const progressBar = document.getElementById('progress-bar');
+
+    function startProgress() {
+      progressBar.style.transition = 'none';
+      progressBar.style.width = '0%';
+      progressBar.style.opacity = '1';
+      // Force reflow so the animation fires from 0
+      progressBar.getBoundingClientRect();
+      progressBar.style.transition = 'width 2.8s ease-out';
+      progressBar.style.width = '85%';
+    }
+
+    function finishProgress() {
+      progressBar.style.transition = 'width 0.2s ease-out';
+      progressBar.style.width = '100%';
+      setTimeout(() => {
+        progressBar.style.transition = 'opacity 0.4s ease';
+        progressBar.style.opacity = '0';
+      }, 300);
+    }
+
+    // ── Loading state ─────────────────────────────────────────────────────
+
+    const LOADING_LINES = [
+      'Fetching issues from GitHub...',
+      'Cross-referencing open PRs...',
+      'Asking Claude to rank by difficulty...',
+    ];
+
+    async function showLoading() {
+      const el = document.getElementById('loading');
+      el.innerHTML = '';
+      el.classList.remove('hidden');
+      for (const line of LOADING_LINES) {
+        await delay(200);
+        const p = document.createElement('p');
+        p.className = 'load-line';
+        p.innerHTML = '<span class="load-prefix">&gt;</span> ' + esc(line);
+        el.appendChild(p);
+      }
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').classList.add('hidden');
+    }
+
+    // ── Error state ───────────────────────────────────────────────────────
+
+    function showError(msg) {
+      const el = document.getElementById('error-card');
+      el.innerHTML = '<strong>Error:</strong> ' + esc(msg);
+      el.classList.remove('hidden');
+    }
+
+    function hideError() {
+      document.getElementById('error-card').classList.add('hidden');
+    }
+
+    // ── Cards ─────────────────────────────────────────────────────────────
+
+    function renderCards(issues) {
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '';
+
+      const filtered = currentFilter === 'all'
+        ? issues
+        : issues.filter(i => i.difficulty === currentFilter);
+
+      filtered.forEach((issue, idx) => {
+        const rank = idx + 1;
+        const rankClass = rank <= 3 ? 'card-rank top3' : 'card-rank';
+        const tags = (issue.tags || [])
+          .map(t => '<span class="tag">' + esc(t) + '</span>')
+          .join('');
+        const comments = issue.comments !== 1
+          ? issue.comments + ' comments'
+          : '1 comment';
+
+        const card = document.createElement('div');
+        card.className = 'issue-card';
+        card.dataset.difficulty = issue.difficulty;
+        card.innerHTML =
+          '<div class="' + rankClass + '">' + rank + '</div>' +
+          '<div class="card-body">' +
+            '<a class="card-title" href="' + esc(issue.html_url) + '" target="_blank" rel="noopener noreferrer">' + esc(issue.title) + '</a>' +
+            '<p class="card-reason">' + esc(issue.reason) + '</p>' +
+            '<div class="card-footer">' +
+              '<span class="badge badge-' + esc(issue.difficulty) + '">' + esc(issue.difficulty) + '</span>' +
+              tags +
+              '<span class="card-meta">#' + esc(issue.number) + ' &middot; ' + esc(comments) + '</span>' +
+            '</div>' +
+          '</div>';
+        container.appendChild(card);
+      });
+    }
+
+    function showResults(data) {
+      document.getElementById('stat-issues').textContent   = data.stats.openIssues;
+      document.getElementById('stat-available').textContent = data.stats.available;
+      document.getElementById('stat-prs').textContent      = data.stats.openPRs;
+      document.getElementById('stat-ranked').textContent   = data.stats.ranked;
+
+      const easyCt = data.issues.filter(i => i.difficulty === 'easy').length;
+      const medCt  = data.issues.filter(i => i.difficulty === 'medium').length;
+      const hardCt = data.issues.filter(i => i.difficulty === 'hard').length;
+      document.getElementById('filter-easy').textContent   = 'Easy ('   + easyCt + ')';
+      document.getElementById('filter-medium').textContent = 'Medium (' + medCt  + ')';
+      document.getElementById('filter-hard').textContent   = 'Hard ('   + hardCt + ')';
+
+      allIssues = data.issues;
+      renderCards(allIssues);
+      document.getElementById('results').classList.remove('hidden');
+    }
+
+    // ── Filter pills ──────────────────────────────────────────────────────
+
+    document.querySelectorAll('.filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentFilter = pill.dataset.filter;
+        renderCards(allIssues);
+      });
+    });
+
+    // ── Scan ──────────────────────────────────────────────────────────────
+
+    async function scan() {
+      const inputEl  = document.getElementById('repo-input');
+      const errorEl  = document.getElementById('input-error');
+      const scanBtn  = document.getElementById('scan-btn');
+
+      const repo = parseRepoInput(inputEl.value);
+      if (!repo) {
+        errorEl.textContent = 'Could not parse a GitHub repo from that input.';
+        return;
+      }
+      errorEl.textContent = '';
+
+      // Reset results
+      hideError();
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('empty').classList.add('hidden');
+      currentFilter = 'all';
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-filter="all"]').classList.add('active');
+
+      scanBtn.disabled = true;
+      startProgress();
+      const loadingDone = showLoading();
+
+      try {
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repo }),
+        });
+
+        await loadingDone;
+        hideLoading();
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || 'HTTP ' + res.status);
+        } else if (!data.issues || data.issues.length === 0) {
+          document.getElementById('empty').classList.remove('hidden');
+        } else {
+          showResults(data);
+        }
+      } catch {
+        await loadingDone;
+        hideLoading();
+        showError('Network error — could not reach the server.');
+      } finally {
+        finishProgress();
+        scanBtn.disabled = false;
+      }
+    }
+
+    // ── Event listeners ───────────────────────────────────────────────────
+
+    document.getElementById('scan-btn').addEventListener('click', scan);
+
+    document.getElementById('repo-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') scan();
+    });
+
+    document.querySelectorAll('.quick-pick').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('repo-input').value = btn.dataset.repo;
+        scan();
+      });
+    });
+  </script>
+</body>
+</html>
