@@ -1,10 +1,6 @@
-import { getAssetFromKV } from '@cloudflare/kv-asset-handler';
-import manifestJSON from '__STATIC_CONTENT_MANIFEST';
 import type { Env } from './types';
 import { parseRepo } from './parseRepo';
 import { analyzeRepo, RateLimitError } from './analyzer';
-
-const assetManifest = JSON.parse(manifestJSON) as Record<string, string>;
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -13,27 +9,12 @@ const CORS_HEADERS: Record<string, string> = {
 };
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
     // CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
-    }
-
-    // Serve static frontend
-    if (url.pathname === '/' && request.method === 'GET') {
-      try {
-        return await getAssetFromKV(
-          { request, waitUntil: ctx.waitUntil.bind(ctx) },
-          {
-            ASSET_NAMESPACE: env.__STATIC_CONTENT,
-            ASSET_MANIFEST: assetManifest,
-          },
-        );
-      } catch {
-        return new Response('Not found', { status: 404 });
-      }
     }
 
     // Analysis endpoint
@@ -87,7 +68,7 @@ export default {
       }
     }
 
-    // 404 for everything else
-    return new Response('Not found', { status: 404 });
+    // All other requests (GET /, static assets, 404s) handled by the assets binding
+    return env.ASSETS.fetch(request);
   },
 };

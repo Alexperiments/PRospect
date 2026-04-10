@@ -1,6 +1,6 @@
 export interface Env {
   ANTHROPIC_API_KEY: string;
-  __STATIC_CONTENT: KVNamespace;
+  ASSETS: Fetcher;
 }
 
 export interface GitHubIssue {
