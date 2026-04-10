@@ -5,3 +5,4 @@ workers_dev = true
 
 [assets]
 directory = "../static"
+binding = "ASSETS"
