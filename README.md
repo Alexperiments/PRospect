@@ -8,7 +8,7 @@ Find approachable open-source issues to contribute to. Paste any GitHub repo URL
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/your-username/PRospect.git
+   git clone https://github.com/Alexperiments/PRospect.git
    cd PRospect
    ```
 
@@ -40,7 +40,7 @@ Find approachable open-source issues to contribute to. Paste any GitHub repo URL
 
 7. **Your app is live at**
    ```
-   https://prospect.<your-subdomain>.workers.dev
+   https://prospect.github-prospect.workers.dev
    ```
 
 ## Local development
