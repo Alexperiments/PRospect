@@ -120,14 +120,15 @@ Return the raw JSON array only. No markdown fences, no prose, no explanation bef
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
 
   if (!res.ok) {
-    throw new Error(`Anthropic API error: ${res.status}`);
+    const errBody = await res.text().catch(() => '(unreadable)');
+    throw new Error(`Anthropic API error: ${res.status} — ${errBody}`);
   }
 
   const data = (await res.json()) as {
