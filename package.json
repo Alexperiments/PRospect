@@ -1,9 +1,6 @@
 {
   "name": "git-prospect",
   "private": true,
-  "scripts": {
-    "dev": "vercel dev"
-  },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "typescript": "^5.5.3"
