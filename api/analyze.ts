@@ -2,7 +2,13 @@ import * as logfire from '@pydantic/logfire-node';
 import { parseRepo } from '../lib/parseRepo';
 import { analyzeRepo, RateLimitError } from '../lib/analyzer';
 
-logfire.configure({ serviceName: 'prospect' });
+let logfireConfigured = false;
+function ensureLogfire() {
+  if (!logfireConfigured) {
+    logfire.configure({ serviceName: 'prospect' });
+    logfireConfigured = true;
+  }
+}
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +17,8 @@ const CORS_HEADERS: Record<string, string> = {
 };
 
 export default async function handler(request: Request): Promise<Response> {
+  ensureLogfire();
+
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
