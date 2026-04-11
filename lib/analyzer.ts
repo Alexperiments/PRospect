@@ -81,8 +81,8 @@ async function rankIssues(
 README (first 1500 chars):
 ${readme.slice(0, 1500)}
 
-CONTRIBUTING:
-${contributing}
+CONTRIBUTING (first 1000 chars):
+${contributing.slice(0, 1000)}
 
 ISSUES:
 ${issueList}
@@ -106,7 +106,7 @@ Return the raw JSON array only. No markdown fences, no prose, no explanation bef
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
+      max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
