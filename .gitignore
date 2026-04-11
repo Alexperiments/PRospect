@@ -3,3 +3,5 @@ dist/
 .wrangler/
 *.local
 .dev.vars
+.vercel
+.env*.local
