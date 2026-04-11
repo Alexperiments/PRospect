@@ -1,6 +1,4 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { Span } from '@opentelemetry/api';
-import * as logfire from '@pydantic/logfire-node';
 import type { GitHubIssue, RankedIssue, AnalyzeResponse } from './types';
 
 const GITHUB_API = 'https://api.github.com';
@@ -102,37 +100,25 @@ Return the raw JSON array only. No markdown fences, no prose, no explanation bef
 
   const anthropic = new Anthropic({ apiKey });
 
-  const ranked = await logfire.span(
-    'anthropic.messages.create',
-    {
-      'gen_ai.system': 'anthropic',
-      'gen_ai.request.model': 'claude-sonnet-4-6',
-      'gen_ai.request.max_tokens': 1024,
-      'gen_ai.operation.name': 'chat',
-      issues_ranked: top40.length,
-    },
-    {},
-    async (span: Span) => {
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: prompt }],
-      });
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }],
+  });
 
-      span.setAttributes({
-        'gen_ai.usage.input_tokens': response.usage.input_tokens,
-        'gen_ai.usage.output_tokens': response.usage.output_tokens,
-        'gen_ai.response.finish_reasons': [response.stop_reason ?? 'unknown'],
-        'gen_ai.response.model': response.model,
-      });
+  const { input_tokens, output_tokens } = response.usage;
+  const content = response.content[0];
+  if (content?.type !== 'text') throw new Error('Unexpected Anthropic response type');
 
-      const content = response.content[0];
-      if (content?.type !== 'text') throw new Error('Unexpected Anthropic response type');
-      return content.text;
-    },
-  );
+  console.log(JSON.stringify({
+    model: response.model,
+    input_tokens,
+    output_tokens,
+    prompt,
+    response: content.text,
+  }));
 
-  const text = ranked.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
+  const text = content.text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
 
   return JSON.parse(text) as AnthropicRankedItem[];
 }

@@ -5,10 +5,10 @@
     "dev": "vercel dev"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "typescript": "^5.5.3"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.88.0",
-    "@pydantic/logfire-node": "^0.13.1"
+    "@anthropic-ai/sdk": "^0.88.0"
   }
 }
