@@ -1,4 +1,4 @@
-import type { Env, GitHubIssue, GitHubPR, RankedIssue, AnalyzeResponse } from './types';
+import type { GitHubIssue, GitHubPR, RankedIssue, AnalyzeResponse } from './types';
 import { filterAvailableIssues } from './filterIssues';
 
 const GITHUB_API = 'https://api.github.com';
@@ -36,21 +36,18 @@ interface RepoData {
 async function fetchRepoData(owner: string, repo: string): Promise<RepoData> {
   const base = `${GITHUB_API}/repos/${owner}/${repo}`;
 
-  // Issues, PRs, and README fetched in parallel
   const [issuesRaw, prs, readmeData] = await Promise.all([
     fetchGitHubJSON<GitHubIssue[]>(`${base}/issues?state=open&per_page=100`),
     fetchGitHubJSON<GitHubPR[]>(`${base}/pulls?state=open&per_page=100`),
     fetchGitHubJSON<{ content: string }>(`${base}/readme`).catch(() => ({ content: '' })),
   ]);
 
-  // GitHub's /issues endpoint also returns PRs — strip them out
   const issues = issuesRaw.filter((i) => !i.pull_request);
 
   const readme = readmeData.content
     ? atob(readmeData.content.replace(/\n/g, ''))
     : '';
 
-  // Try root CONTRIBUTING.md, fall back to docs/CONTRIBUTING.md
   let contributing = '';
   try {
     const data = await fetchGitHubJSON<{ content: string }>(
@@ -84,7 +81,6 @@ async function rankIssues(
   contributing: string,
   apiKey: string,
 ): Promise<AnthropicRankedItem[]> {
-  // Send the 40 most recent available issues
   const top40 = availableIssues.slice(0, 40);
 
   const issueList = top40
@@ -136,7 +132,6 @@ Return the raw JSON array only. No markdown fences, no prose, no explanation bef
   };
   let text = data.content[0]?.text ?? '';
 
-  // Strip accidental markdown fences
   text = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
 
   return JSON.parse(text) as AnthropicRankedItem[];
@@ -144,7 +139,7 @@ Return the raw JSON array only. No markdown fences, no prose, no explanation bef
 
 export async function analyzeRepo(
   repo: string,
-  env: Env,
+  apiKey: string,
 ): Promise<AnalyzeResponse> {
   const [owner, name] = repo.split('/') as [string, string];
 
@@ -152,9 +147,8 @@ export async function analyzeRepo(
 
   const available = filterAvailableIssues(issues, prs);
 
-  const ranked = await rankIssues(available, readme, contributing, env.ANTHROPIC_API_KEY);
+  const ranked = await rankIssues(available, readme, contributing, apiKey);
 
-  // Build a lookup map for enriching ranked items with GitHub data
   const issueMap = new Map(issues.map((i) => [i.number, i]));
 
   const enriched: RankedIssue[] = ranked

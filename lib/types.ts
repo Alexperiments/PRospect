@@ -1,8 +1,3 @@
-export interface Env {
-  ANTHROPIC_API_KEY: string;
-  ASSETS: Fetcher;
-}
-
 export interface GitHubIssue {
   number: number;
   title: string;
