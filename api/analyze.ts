@@ -1,7 +1,8 @@
+import * as logfire from '@pydantic/logfire-node';
 import { parseRepo } from '../lib/parseRepo';
 import { analyzeRepo, RateLimitError } from '../lib/analyzer';
 
-export const config = { runtime: 'edge' };
+logfire.configure({ serviceName: 'prospect' });
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',

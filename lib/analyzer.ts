@@ -1,3 +1,6 @@
+import Anthropic from '@anthropic-ai/sdk';
+import type { Span } from '@opentelemetry/api';
+import * as logfire from '@pydantic/logfire-node';
 import type { GitHubIssue, RankedIssue, AnalyzeResponse } from './types';
 
 const GITHUB_API = 'https://api.github.com';
@@ -97,31 +100,39 @@ Return a JSON array of exactly 12 items (or fewer if there are fewer issues), ra
 
 Return the raw JSON array only. No markdown fences, no prose, no explanation before or after the array.`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+  const anthropic = new Anthropic({ apiKey });
+
+  const ranked = await logfire.span(
+    'anthropic.messages.create',
+    {
+      'gen_ai.system': 'anthropic',
+      'gen_ai.request.model': 'claude-sonnet-4-6',
+      'gen_ai.request.max_tokens': 1024,
+      'gen_ai.operation.name': 'chat',
+      issues_ranked: top40.length,
     },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
+    {},
+    async (span: Span) => {
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      });
 
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '(unreadable)');
-    throw new Error(`Anthropic API error: ${res.status} — ${errBody}`);
-  }
+      span.setAttributes({
+        'gen_ai.usage.input_tokens': response.usage.input_tokens,
+        'gen_ai.usage.output_tokens': response.usage.output_tokens,
+        'gen_ai.response.finish_reasons': [response.stop_reason ?? 'unknown'],
+        'gen_ai.response.model': response.model,
+      });
 
-  const data = (await res.json()) as {
-    content: { type: string; text: string }[];
-  };
-  let text = data.content[0]?.text ?? '';
+      const content = response.content[0];
+      if (content?.type !== 'text') throw new Error('Unexpected Anthropic response type');
+      return content.text;
+    },
+  );
 
-  text = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
+  const text = ranked.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
 
   return JSON.parse(text) as AnthropicRankedItem[];
 }
