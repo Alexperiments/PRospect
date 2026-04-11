@@ -442,16 +442,8 @@
     <div id="results" class="hidden">
       <div class="stats-bar">
         <div class="stat-block">
-          <div class="stat-label">Open issues</div>
-          <div class="stat-value" id="stat-issues">—</div>
-        </div>
-        <div class="stat-block">
           <div class="stat-label">Available</div>
           <div class="stat-value" id="stat-available">—</div>
-        </div>
-        <div class="stat-block">
-          <div class="stat-label">Open PRs</div>
-          <div class="stat-value" id="stat-prs">—</div>
         </div>
         <div class="stat-block">
           <div class="stat-label">Ranked</div>
@@ -608,9 +600,7 @@
     }
 
     function showResults(data) {
-      document.getElementById('stat-issues').textContent   = data.stats.openIssues;
       document.getElementById('stat-available').textContent = data.stats.available;
-      document.getElementById('stat-prs').textContent      = data.stats.openPRs;
       document.getElementById('stat-ranked').textContent   = data.stats.ranked;
 
       const easyCt = data.issues.filter(i => i.difficulty === 'easy').length;

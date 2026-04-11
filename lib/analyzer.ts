@@ -1,5 +1,4 @@
-import type { GitHubIssue, GitHubPR, RankedIssue, AnalyzeResponse } from './types';
-import { filterUnassignedIssues } from './filterIssues';
+import type { GitHubIssue, RankedIssue, AnalyzeResponse } from './types';
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -26,74 +25,36 @@ async function fetchGitHubJSON<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-interface RepoData {
-  issues: GitHubIssue[];
-  prs: GitHubPR[];
-  readme: string;
-  contributing: string;
+interface SearchResult {
+  total_count: number;
+  items: GitHubIssue[];
 }
 
-interface TimelineEvent {
-  event: string;
-  source?: {
-    type: string;
-    issue?: {
-      state: string;
-      pull_request?: unknown;
-    };
-  };
+async function searchAvailableIssues(owner: string, repo: string): Promise<SearchResult> {
+  const q = encodeURIComponent(`is:issue state:open no:assignee -linked:pr repo:${owner}/${repo}`);
+  return fetchGitHubJSON<SearchResult>(`${GITHUB_API}/search/issues?q=${q}&per_page=100`);
 }
 
-/**
- * Returns true if the issue has at least one cross-reference from an open PR.
- * Uses the GitHub issue timeline API which tracks "Closes/Fixes/Resolves #NNN"
- * keywords and other linking mechanisms — more reliable than text-scanning PR bodies.
- */
-async function hasLinkedOpenPR(owner: string, repo: string, issueNumber: number): Promise<boolean> {
-  const events = await fetchGitHubJSON<TimelineEvent[]>(
-    `${GITHUB_API}/repos/${owner}/${repo}/issues/${issueNumber}/timeline?per_page=100`,
-  );
-  return events.some(
-    (e) =>
-      e.event === 'cross-referenced' &&
-      e.source?.issue?.state === 'open' &&
-      e.source?.issue?.pull_request !== undefined,
-  );
-}
-
-async function fetchRepoData(owner: string, repo: string): Promise<RepoData> {
+async function fetchRepoContext(owner: string, repo: string): Promise<{ readme: string; contributing: string }> {
   const base = `${GITHUB_API}/repos/${owner}/${repo}`;
 
-  const [issuesRaw, prs, readmeData] = await Promise.all([
-    fetchGitHubJSON<GitHubIssue[]>(`${base}/issues?state=open&per_page=100`),
-    fetchGitHubJSON<GitHubPR[]>(`${base}/pulls?state=open&per_page=100`),
-    fetchGitHubJSON<{ content: string }>(`${base}/readme`).catch(() => ({ content: '' })),
-  ]);
-
-  const issues = issuesRaw.filter((i) => !i.pull_request);
-
-  const readme = readmeData.content
-    ? atob(readmeData.content.replace(/\n/g, ''))
-    : '';
+  const readmeData = await fetchGitHubJSON<{ content: string }>(`${base}/readme`).catch(() => ({ content: '' }));
+  const readme = readmeData.content ? atob(readmeData.content.replace(/\n/g, '')) : '';
 
   let contributing = '';
   try {
-    const data = await fetchGitHubJSON<{ content: string }>(
-      `${base}/contents/CONTRIBUTING.md`,
-    );
+    const data = await fetchGitHubJSON<{ content: string }>(`${base}/contents/CONTRIBUTING.md`);
     contributing = atob(data.content.replace(/\n/g, ''));
   } catch {
     try {
-      const data = await fetchGitHubJSON<{ content: string }>(
-        `${base}/contents/docs/CONTRIBUTING.md`,
-      );
+      const data = await fetchGitHubJSON<{ content: string }>(`${base}/contents/docs/CONTRIBUTING.md`);
       contributing = atob(data.content.replace(/\n/g, ''));
     } catch {
       // No CONTRIBUTING.md found — proceed without it
     }
   }
 
-  return { issues, prs, readme, contributing };
+  return { readme, contributing };
 }
 
 interface AnthropicRankedItem {
@@ -171,18 +132,14 @@ export async function analyzeRepo(
 ): Promise<AnalyzeResponse> {
   const [owner, name] = repo.split('/') as [string, string];
 
-  const { issues, prs, readme, contributing } = await fetchRepoData(owner, name);
-
-  const unassigned = filterUnassignedIssues(issues);
-
-  const linkedFlags = await Promise.all(
-    unassigned.map((i) => hasLinkedOpenPR(owner, name, i.number)),
-  );
-  const available = unassigned.filter((_, idx) => !linkedFlags[idx]);
+  const [{ total_count, items: available }, { readme, contributing }] = await Promise.all([
+    searchAvailableIssues(owner, name),
+    fetchRepoContext(owner, name),
+  ]);
 
   const ranked = await rankIssues(available, readme, contributing, apiKey);
 
-  const issueMap = new Map(issues.map((i) => [i.number, i]));
+  const issueMap = new Map(available.map((i) => [i.number, i]));
 
   const enriched: RankedIssue[] = ranked
     .map((r) => {
@@ -202,9 +159,7 @@ export async function analyzeRepo(
 
   return {
     stats: {
-      openIssues: issues.length,
-      available: available.length,
-      openPRs: prs.length,
+      available: total_count,
       ranked: enriched.length,
     },
     issues: enriched,

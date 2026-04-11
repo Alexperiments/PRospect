@@ -9,12 +9,6 @@ export interface GitHubIssue {
   created_at: string;
 }
 
-export interface GitHubPR {
-  number: number;
-  title: string;
-  body: string | null;
-}
-
 export interface RankedIssue {
   number: number;
   title: string;
@@ -27,9 +21,7 @@ export interface RankedIssue {
 
 export interface AnalyzeResponse {
   stats: {
-    openIssues: number;
     available: number;
-    openPRs: number;
     ranked: number;
   };
   issues: RankedIssue[];
