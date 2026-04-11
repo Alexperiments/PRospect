@@ -13,7 +13,7 @@ export class RateLimitError extends Error {
 async function fetchGitHubJSON<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     headers: {
-      'User-Agent': 'PRospect/1.0',
+      'User-Agent': 'git-prospect/1.0',
       Accept: 'application/vnd.github+json',
     },
   });

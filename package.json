@@ -1,5 +1,5 @@
 {
-  "name": "prospect",
+  "name": "git-prospect",
   "private": true,
   "scripts": {
     "dev": "vercel dev"

@@ -1,8 +1,8 @@
-# PRospect
+# git-prospect
 
-Find approachable open-source issues to contribute to. Paste any GitHub repo URL or slug — PRospect fetches open issues, filters out ones already being worked on, then asks Claude to rank the rest by how contributor-friendly they are.
+Find approachable open-source issues to contribute to. Paste any GitHub repo URL or slug — git-prospect fetches open issues, filters out ones already being worked on, then asks Claude to rank the rest by how contributor-friendly they are.
 
-![PRospect screenshot](docs/screenshot.png)
+![git-prospect screenshot](docs/screenshot.png)
 
 ## Setup
 
@@ -27,7 +27,7 @@ Find approachable open-source issues to contribute to. Paste any GitHub repo URL
 
 4. **Your app is live at**
    ```
-   https://prospect.vercel.app
+   https://git-prospect.vercel.app
    ```
 
 ## Local development
