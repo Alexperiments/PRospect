@@ -14,53 +14,35 @@ Find approachable open-source issues to contribute to. Paste any GitHub repo URL
 
 2. **Install dependencies**
    ```bash
-   cd worker && npm install
+   npm install
    ```
 
-3. **Log in to Cloudflare**
-   ```bash
-   npx wrangler login
+3. **Deploy to Vercel**
+
+   Import the repo at [vercel.com/new](https://vercel.com/new), then add the following environment variable in the Vercel dashboard:
+
+   | Variable | Value |
+   |---|---|
+   | `ANTHROPIC_API_KEY` | Your Anthropic API key |
+
+4. **Your app is live at**
    ```
-
-4. **Set the Anthropic API key as a Worker secret**
-   ```bash
-   npx wrangler secret put ANTHROPIC_API_KEY
-   ```
-   Paste your key when prompted. It is never stored in any file.
-
-5. **Add Cloudflare API token to GitHub repo secrets**
-
-   In your GitHub repo → Settings → Secrets and variables → Actions, add:
-   - `CLOUDFLARE_API_TOKEN` — a Cloudflare API token with **Workers Scripts: Edit** permission
-
-6. **Push to main — GitHub Actions deploys automatically**
-   ```bash
-   git push origin main
-   ```
-
-7. **Your app is live at**
-   ```
-   https://prospect.github-prospect.workers.dev
+   https://prospect.vercel.app
    ```
 
 ## Local development
 
 ```bash
-cd worker && npx wrangler dev
+npm install -g vercel
+vercel dev
 ```
 
-Open [http://localhost:8787](http://localhost:8787).
-
-## Running tests
-
-```bash
-cd worker && npm test
-```
+Open [http://localhost:3000](http://localhost:3000).
 
 ## How it works
 
 1. User pastes a GitHub repo URL, slug, or SSH remote — the frontend normalizes it to `owner/repo`
-2. The Worker fetches open issues, open PRs, README, and CONTRIBUTING.md in parallel from the GitHub API
+2. The API fetches open issues, open PRs, README, and CONTRIBUTING.md in parallel from the GitHub API
 3. Issues that have assignees or are referenced in any open PR's title/body are filtered out
-4. The top 40 remaining issues (plus repo context) are sent to `claude-sonnet-4-5` to rank and label by difficulty
+4. The top 40 remaining issues (plus repo context) are sent to Claude to rank and label by difficulty
 5. Results are returned as a ranked card list with Easy / Medium / Hard badges and tag labels
