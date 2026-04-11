@@ -1,5 +1,5 @@
 import type { GitHubIssue, GitHubPR, RankedIssue, AnalyzeResponse } from './types';
-import { filterAvailableIssues } from './filterIssues';
+import { filterUnassignedIssues } from './filterIssues';
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -31,6 +31,34 @@ interface RepoData {
   prs: GitHubPR[];
   readme: string;
   contributing: string;
+}
+
+interface TimelineEvent {
+  event: string;
+  source?: {
+    type: string;
+    issue?: {
+      state: string;
+      pull_request?: unknown;
+    };
+  };
+}
+
+/**
+ * Returns true if the issue has at least one cross-reference from an open PR.
+ * Uses the GitHub issue timeline API which tracks "Closes/Fixes/Resolves #NNN"
+ * keywords and other linking mechanisms — more reliable than text-scanning PR bodies.
+ */
+async function hasLinkedOpenPR(owner: string, repo: string, issueNumber: number): Promise<boolean> {
+  const events = await fetchGitHubJSON<TimelineEvent[]>(
+    `${GITHUB_API}/repos/${owner}/${repo}/issues/${issueNumber}/timeline?per_page=100`,
+  );
+  return events.some(
+    (e) =>
+      e.event === 'cross-referenced' &&
+      e.source?.issue?.state === 'open' &&
+      e.source?.issue?.pull_request !== undefined,
+  );
 }
 
 async function fetchRepoData(owner: string, repo: string): Promise<RepoData> {
@@ -145,7 +173,12 @@ export async function analyzeRepo(
 
   const { issues, prs, readme, contributing } = await fetchRepoData(owner, name);
 
-  const available = filterAvailableIssues(issues, prs);
+  const unassigned = filterUnassignedIssues(issues);
+
+  const linkedFlags = await Promise.all(
+    unassigned.map((i) => hasLinkedOpenPR(owner, name, i.number)),
+  );
+  const available = unassigned.filter((_, idx) => !linkedFlags[idx]);
 
   const ranked = await rankIssues(available, readme, contributing, apiKey);
 
